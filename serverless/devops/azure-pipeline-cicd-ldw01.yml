@@ -1,0 +1,43 @@
+# Pipeline to build and deploy Serverless SQL pool for Synapse Data Platform https://github.com/bennyaustin/synapse-dataplatform implemented using ELT Framework https://github.com/bennyaustin/elt-framework
+
+trigger:
+- main
+
+pool:
+  name: Azure Pipelines
+  demands:
+  - msbuild
+  - visualstudio
+  vmImage: windows-latest
+
+steps:
+- task: VSBuild@1
+  displayName: Build database project
+  inputs:
+    solution: '**\ldw01.sln'
+
+- publish: $(System.DefaultWorkingDirectory)
+  artifact: sqlscript
+  displayName: Publish sqlscript
+
+- task: AzureKeyVault@2
+  displayName: Get keyvault secrets
+  inputs:
+    connectedServiceName: ba-devops-spn
+    KeyVaultName: ba-keyvault1 
+    SecretsFilter: dw01-sqlusername,dw01-sqlpassword
+    RunAsPreJob: true
+- task: SqlAzureDacpacDeployment@1
+  displayName: Deploy database
+  inputs:
+    ConnectedServiceNameARM: ba-devops-spn
+    deployType: SqlTask
+    AuthenticationType: server
+    ServerName: ba-synapseanalytics01-ondemand.sql.azuresynapse.net
+    DatabaseName: ldw01
+    SqlUsername: $(dw01-sqlusername)
+    SqlPassword: $(dw01-sqlpassword)
+    SqlFile: serverless\ldw01\bin\Release\ldw01_Create.sql
+    IpDetectionMethod: AutoDetect
+    DeleteFirewallRule: true
+    # SqlAdditionalArguments: -DatalakeEndpoint "bastoragedatalake01.dfs.core.windows.net"

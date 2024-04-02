@@ -1,0 +1,163 @@
+{
+	"name": "keyvault-functions",
+	"properties": {
+		"folder": {
+			"name": "common"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "mediumMO",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "56g",
+			"driverCores": 8,
+			"executorMemory": "56g",
+			"executorCores": 8,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "2fb28b6d-2802-4d63-a13e-19d1b3859c2c"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/e836675f-2508-4873-ad4f-754d70253b22/resourceGroups/rg-synapse-dataplatform/providers/Microsoft.Synapse/workspaces/ba-synapse01-kn3acb6lw3vr4/bigDataPools/mediumMO",
+				"name": "mediumMO",
+				"type": "Spark",
+				"endpoint": "https://ba-synapse01-kn3acb6lw3vr4.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/mediumMO",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.2",
+				"nodeCount": 3,
+				"cores": 8,
+				"memory": 56,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Re-usable Azure Key Vault Functions"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Parameters and Init"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"tags": [
+						"parameters"
+					]
+				},
+				"source": [
+					"kvLinkedService ='your Azure Key Vault Linked Service referenced by this Synapse Workspace'"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": true
+				},
+				"source": [
+					"from notebookutils import mssparkutils"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## getSecret()\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": true
+				},
+				"source": [
+					"def getSecret (secretName):\n",
+					"# ##########################################################################################################################  \n",
+					"# Function: getSecret\n",
+					"# Returns the value of a secret stored in Azure Key Vault that is referenced as link service\n",
+					"# \n",
+					"# Parameters:\n",
+					"# secretName = Name of secret in Azure Key Vault\n",
+					"# \n",
+					"# Returns:\n",
+					"# The value of secret stored in Azure Key Vault\n",
+					"# ##########################################################################################################################\n",
+					"    assert secretName is not None, \"secretName not specified\"\n",
+					"    try:\n",
+					"        return mssparkutils.credentials.getSecretWithLS(kvLinkedService,secretName) #kvLinkedService is a notebook parameter set by the calling notebook\n",
+					"    except Exception as e:\n",
+					"        print(\"Either Linked Service: \" + kvLinkedService + \" does not exist or Secret: \" + secretName + \" does not exist\")\n",
+					"        raise e"
+				]
+			}
+		]
+	}
+}

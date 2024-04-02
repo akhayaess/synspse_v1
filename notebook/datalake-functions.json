@@ -1,0 +1,290 @@
+{
+	"name": "datalake-functions",
+	"properties": {
+		"folder": {
+			"name": "common"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "mediumMO",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "56g",
+			"driverCores": 8,
+			"executorMemory": "56g",
+			"executorCores": 8,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "bf683815-96a7-4b32-a34d-3938b06310af"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": true,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/e836675f-2508-4873-ad4f-754d70253b22/resourceGroups/rg-synapse-dataplatform/providers/Microsoft.Synapse/workspaces/ba-synapse01-kn3acb6lw3vr4/bigDataPools/mediumMO",
+				"name": "mediumMO",
+				"type": "Spark",
+				"endpoint": "https://ba-synapse01-kn3acb6lw3vr4.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/mediumMO",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.2",
+				"nodeCount": 3,
+				"cores": 8,
+				"memory": 56,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Re-usable Datalake Functions"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"from notebookutils import mssparkutils"
+				],
+				"execution_count": 3
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"%run /linkedServiceFunctions"
+				],
+				"execution_count": 4
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"tags": [
+						"parameters"
+					]
+				},
+				"source": [
+					"storageAccount = '<Storage Account Name>'"
+				],
+				"execution_count": 5
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# readFile()"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": true
+				},
+				"source": [
+					"def readFile(container, path, colSeparator=None, headerFlag=None):\r\n",
+					"  # ##########################################################################################################################  \r\n",
+					"  # Function: readFile\r\n",
+					"  # Reads a file from Azure Gen2 Storage and returns as dataframe\r\n",
+					"  # \r\n",
+					"  # Parameters:\r\n",
+					"  # storageAccount = Name of Storage Account  \r\n",
+					"  # container = File System/Container of Azure Data Lake Storage\r\n",
+					"  # path = realtive path of file including folder name, file name and file extension. For e.g /folder/file.extension\r\n",
+					"  # colSeparator = Column separator for text files\r\n",
+					"  # headerFlag = boolean flag to indicate whether the text file has a header or not  \r\n",
+					"  # \r\n",
+					"  # Returns:\r\n",
+					"  # A dataframe of the raw file\r\n",
+					"  # ##########################################################################################################################    \r\n",
+					"\r\n",
+					"    assert storageAccount is not None, \"Storage Account not specified\"   \r\n",
+					"\r\n",
+					"    filePath = \"abfss://\" + container + \"@\"+ storageAccount + \".dfs.core.windows.net/\" + path\r\n",
+					"    if \".csv\" in path or \".txt\" in path:\r\n",
+					"        df = spark.read.csv(path=filePath, sep=colSeparator, header=headerFlag, inferSchema=\"true\")\r\n",
+					"    elif \".parquet\" in path:\r\n",
+					"        df = spark.read.parquet(filePath)\r\n",
+					"    elif \".json\" in path:\r\n",
+					"        df = spark.read.json(filePath, multiLine= True)\r\n",
+					"    elif \".orc\" in path:\r\n",
+					"        df = spark.read.orc(filePath)\r\n",
+					"    else:\r\n",
+					"        df = spark.read.format(\"csv\").load(filePath)\r\n",
+					"  \r\n",
+					"    df =df.dropDuplicates()\r\n",
+					"    return df\r\n",
+					""
+				],
+				"execution_count": 6
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# writeFile()"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": true
+				},
+				"source": [
+					"def writeFile(df,container, path, writeMode=\"overwrite\", colSeparator=\",\"):\r\n",
+					"  # ##########################################################################################################################  \r\n",
+					"  # Function: writeFile\r\n",
+					"  # Writes the input dataframe to a file in Azure Gen2 Storage\r\n",
+					"  # \r\n",
+					"  # Parameters:\r\n",
+					"  # df= input dataframe\r\n",
+					"  # storageAccount = Name of Storage Account\r\n",
+					"  # container = File System/Container of Azure Data Lake Storage\r\n",
+					"  # path = realtive path of file including folder name, file name and file extension. For e.g /folder/file.extension\r\n",
+					"  # writeMode= mode of writing the curated file. Allowed values - append/overwrite/ignore/error/errorifexists\r\n",
+					"  # colSeparator = Column separator for text files\r\n",
+					"  # \r\n",
+					"  # Returns:\r\n",
+					"  # A dataframe of the raw file\r\n",
+					"  # ##########################################################################################################################     \r\n",
+					"    assert storageAccount is not None, \"Storage Account not specified\"   \r\n",
+					"    filePath = \"abfss://\" + container + \"@\"+ storageAccount + \".dfs.core.windows.net/\" + path\r\n",
+					"    if \"csv\" in path or 'txt' in path:\r\n",
+					"        df.write.csv(filePath,mode=writeMode,sep=colSeparator,header=\"true\")\r\n",
+					"    elif \"parquet\" in path:\r\n",
+					"        df.write.parquet(filePath,mode=writeMode)\r\n",
+					"    elif \"orc\" in path:\r\n",
+					"        df.write.orc(filePath,mode=writeMode)\r\n",
+					"    elif \"json\" in path:\r\n",
+					"        df.write.json(filePath, mode=writeMode)\r\n",
+					"    else:\r\n",
+					"        df.write.save(path=filePath,format=\"csv\",mode=writeMode)\r\n",
+					"    return\r\n",
+					""
+				],
+				"execution_count": 7
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# getFolder()"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"def getFolder(storageZoneLinkedServiceName, container, folder):\r\n",
+					"    # ##########################################################################################################################  \r\n",
+					"    # Function: getFolder\r\n",
+					"    # Returns a fully qualified name of a folder in ADLS Gen2 Storage\r\n",
+					"    # \r\n",
+					"    # Parameters:\r\n",
+					"    # storageZoneLinkedServiceName = Linked service name for the storage zone\r\n",
+					"    # container = File System/Container of Azure Data Lake Storage\r\n",
+					"    # folder = Folder name\r\n",
+					"    # \r\n",
+					"    # Returns:\r\n",
+					"    # The fully qualified name of a folder in Storage Account of Azure Data Lake Storage\r\n",
+					"    # ##########################################################################################################################     \r\n",
+					"\r\n",
+					"    storageEndpoint = getLinkedServiceEndpoint(storageZoneLinkedServiceName)\r\n",
+					"    folderPath = \"abfss://\" + container + \"@\" + storageEndpoint + folder\r\n",
+					"    \r\n",
+					"    return folderPath"
+				],
+				"execution_count": 8
+			}
+		]
+	}
+}

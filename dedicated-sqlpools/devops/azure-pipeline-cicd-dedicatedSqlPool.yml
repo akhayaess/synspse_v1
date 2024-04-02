@@ -1,0 +1,53 @@
+# Pipeline to build and deploy Dedicated SQL pool for Synapse Data Platform https://github.com/bennyaustin/synapse-dataplatform implemented using ELT Framework https://github.com/bennyaustin/elt-framework
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - dedicated-sqlpools/dw01
+
+pool:
+  name: Azure Pipelines
+  demands:
+  - msbuild
+  - visualstudio
+  vmImage: windows-latest
+
+stages:
+  - stage: ci
+    displayName: Build Stage
+    jobs:
+      - template: templates/build-sqldb.yml
+        parameters:
+          solutionName:  dwh01
+          buildPath:  dedicated-sqlpools\dw01\bin\Release
+
+  - stage: cd_nonprod
+    displayName: Deploy Stage - Non Prod
+    dependsOn: ci
+    condition: succeeded()
+    jobs:
+    - template: templates/deploy-sqldb.yml
+      parameters:
+        serviceConnectionName:  devops-contoso-spn
+        keyvaultName:  ba-kv01-kn3acb6lw3vr4 
+        buildArtifactName:  dacpac
+        targetDatabaseServer:  ba-synapse01-kn3acb6lw3vr4.sql.azuresynapse.net,1433
+        targetDatabase:  dwh01
+        datalakeEndpoint: badatalake01kn3acb6lw3vr.dfs.core.windows.net
+
+  - stage: cd_prod
+    displayName: Deploy Stage - Prod
+    dependsOn: ci
+    condition: succeeded()
+    jobs:
+    - template: templates/deploy-sqldb.yml
+      parameters:
+        serviceConnectionName:  devops-contoso-spn
+        keyvaultName:  ba-kv01-o5rium4bfcf6a
+        buildArtifactName:  dacpac
+        targetDatabaseServer:  ba-synapse01-o5rium4bfcf6a.sql.azuresynapse.net,1433
+        targetDatabase:  dwh01
+        datalakeEndpoint: badatalake01o5rium4bfcf6.dfs.core.windows.net

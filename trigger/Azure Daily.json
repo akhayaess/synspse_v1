@@ -1,0 +1,42 @@
+{
+	"name": "Azure Daily",
+	"properties": {
+		"description": "Daily Trigger to Extract, Load and Transform data from Azure REST APIs",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "Master ELT REST API",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemName": "Azure",
+					"StreamName": "%",
+					"MaxIngestInstance": "100",
+					"BaseURL": "https://management.azure.com",
+					"ServicePrincipalID": "5e07b142-92b4-4671-83c0-e824bc93da6c",
+					"TenantID": "45a126ff-7fc0-4528-ac6b-eefad687db2d",
+					"AADResource": "https://management.azure.com"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2022-07-01T00:49:00",
+				"timeZone": "AUS Eastern Standard Time",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						4
+					]
+				}
+			}
+		}
+	}
+}
